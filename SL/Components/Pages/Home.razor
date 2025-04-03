@@ -1,0 +1,89 @@
+﻿@page "/"
+@using Radzen
+@using Radzen.Blazor
+@using SL.Modelos
+@inject Controller.vControlACController VControlACController
+
+<div style="text-align: center;">
+    <h1 style="margin-bottom: 2rem;">Lista de Compras</h1>
+
+    <RadzenStack AlignItems="AlignItems.Center" class="rz-mx-auto" style="margin-bottom: 2rem;">
+        <RadzenImage Path="https://simpleicons.org/icons/shopify.svg"
+        Style="width: 120px; height: auto;"
+        AlternateText="Shopping Logo" />
+    </RadzenStack>
+</div>
+<div class="summary-container">
+    <!-- Tarjeta para Suma de Cantidades -->
+    <RadzenCard Style="margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="summary-item">
+            <RadzenIcon Icon="format_list_numbered" Style="color: #4CAF50; font-size: 1.5em; margin-right: 10px;" />
+            <div>
+                <RadzenLabel Text="Total de Artículos" Style="font-weight: 500; color: #666; font-size: 0.9em;" />
+                <RadzenNumeric Value="@SumaCantidad" ReadOnly="true"
+                               Style="font-size: 1.5em; font-weight: 600; color: #333;"
+                               Format="N0" />
+            </div>
+        </div>
+    </RadzenCard>
+
+    <!-- Tarjeta para Suma de Precios -->
+    <RadzenCard Style="border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="summary-item">
+            <RadzenIcon Icon="monetization_on" Style="color: #2196F3; font-size: 1.5em; margin-right: 10px;" />
+            <div>
+                <RadzenLabel Text="Valor Total" Style="font-weight: 500; color: #666; font-size: 0.9em;" />
+                <RadzenNumeric Value="@SumaPrecio" ReadOnly="true"
+                               Style="font-size: 1.5em; font-weight: 600; color: #333;"
+                               Format="C2" />
+            </div>
+        </div>
+    </RadzenCard>
+</div>
+
+<style>
+    .summary-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 15px;
+    }
+
+    .summary-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+    }
+
+    /* Efecto hover para las tarjetas */
+    .rz-card:hover {
+        transform: translateY(-2px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    /* Responsive para móviles */
+    @@media (max-width: 600px) {
+        .summary-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+
+@code{
+    private List<vControlAC> ControlACs = new();
+    private decimal SumaCantidad;
+    private decimal SumaPrecio;
+    protected override async Task OnInitializedAsync()
+    {
+        ControlACs = await VControlACController.Get();
+
+        SumaCantidad = await VControlACController.GetSumaCantidad();
+        SumaPrecio = await VControlACController.GetSumaPrecio();
+
+
+    }
+
+
+}

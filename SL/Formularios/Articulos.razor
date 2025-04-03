@@ -1,0 +1,183 @@
+﻿@page "/articulos"
+@using Radzen
+@using Radzen.Blazor
+@using Modelos
+@inject Controller.ArticuloController Controller
+@inject DialogService DialogService
+
+<h3>Articulos</h3>
+
+<RadzenDataGrid @ref="Tabla"
+                AllowFiltering="true"
+                AllowPaging="true"
+                AllowSorting="true"
+                AllowColumnResize="true"
+                ColumnWidth="150px"
+                Density="Density.Default"
+                PageSize="5"
+                Responsive="true"
+                EditMode="DataGridEditMode.Single"
+                Data="Data"
+                TItem="Articulo"
+                EmptyText="Sin registros para mostrar"
+                ShowPagingSummary="true"
+                PageSizeOptions=@PageSizeOptions
+                PagingSummaryFormat=@PagingSummaryFormat
+                PageSizeText="Registros por página"
+                ClearFilterText="Borrar"
+                ApplyFilterText="Aplicar"
+                FilterText="Filtro"
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                FilterMode="FilterMode.Simple"
+                Page="@(a=>DisableInsert=false)"
+                PageSizeChanged="@(a=>DisableInsert=false)">
+    <HeaderTemplate>
+        <RadzenButton Disabled="@(!Agregar)" ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Agregar" Click="@InsertRow" />
+    </HeaderTemplate>
+    <Columns>
+        <RadzenDataGridColumn Property="@nameof(Articulo.NombreArticulo)" Title="Nombre del Articulo">
+            <EditTemplate Context="Articulo">
+                <RadzenTextBox @bind-Value=Articulo.NombreArticulo></RadzenTextBox>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Articulo.Cantidad)" Title="Cantidad">
+            <EditTemplate Context="Articulo">
+                <RadzenNumeric @bind-Value=Articulo.Cantidad></RadzenNumeric>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Articulo.Precio)" Title="Precio">
+            <EditTemplate Context="Articulo">
+                <RadzenNumeric @bind-Value=Articulo.Precio></RadzenNumeric>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Articulo.IdCategoria)" Title="Id Categoria">
+            <EditTemplate Context="Articulo">
+                <RadzenNumeric @bind-Value=Articulo.IdCategoria />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Articulo.FechaCreacion)" Title="Fecha">
+            <EditTemplate Context="Articulo">
+                <RadzenDatePicker @bind-Value=Articulo.FechaCreacion></RadzenDatePicker>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Context="Articulo" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Title="Acciones" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template Context="Articulo">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(a=>EditRow(Articulo))" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(x=>DeleteRow(Articulo))" />
+            </Template>
+            <EditTemplate Context="Articulo">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" aria-label="Save" Click="@(x=>SaveRow(Articulo))" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" aria-label="Cancel" Click="@(x=>CancelEdit(Articulo))" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Click="@(x=>DeleteRow(Articulo))" class="rz-my-1 rz-ms-1" aria-label="Delete" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+ 
+</RadzenDataGrid>
+<RadzenDialog />
+
+@code {
+    public RadzenDataGrid<Articulo>? Tabla { get; set; }
+    public List<Articulo>? Data { get; set; }
+    public IEnumerable<int> PageSizeOptions { get; set; } = new[] { 2, 5, 10, 100 };
+    public string PagingSummaryFormat { get; set; } = "Página {0} de {1} (Total {2} Registros)";
+    public bool DisableInsert { get; set; } = false;
+    public bool Agregar { get; set; } = true;
+
+    protected override Task OnInitializedAsync()
+    {
+        cargarGrid();
+        return base.OnInitializedAsync();
+    }
+    private async void cargarGrid()
+    {
+        Data = await Controller.Get();
+        StateHasChanged();
+    }
+    //Inserta una nueva fila vacia
+    async Task InsertRow()
+    {
+        if (Tabla != null)
+            await Tabla.InsertRow(new());
+        DisableInsert = false;
+    }
+    //Edita una fila existente
+    async Task EditRow(Articulo Entidad)
+    {
+        if (Tabla != null)
+            await Tabla.EditRow(Entidad);
+        DisableInsert = true;
+    }
+    async Task DeleteRow(Articulo Entidad)
+    {
+        if (Tabla != null)
+            if (await Controller.Delete(Entidad))
+            {
+                await ShowNotify("Registro Anulado con exito.");
+                cargarGrid();
+                return;
+            }
+        await ShowNotify("El registro no se anuló");
+        cargarGrid();
+        DisableInsert = true;
+    }
+    async Task SaveRow(Articulo Entidad)
+    {
+        if (Entidad.idArticulo > 0)
+        {
+            //Actualizar
+            if (await Controller.Update(Entidad))
+            {
+                await ShowNotify("Registro Actualizado con exito.");
+                cargarGrid();
+                return;
+            }
+            await ShowNotify("El registro no se actulizó");
+        }
+        else
+        {
+            //Insertar
+            if (await Controller.Insert(Entidad) > 0)
+            {
+                await ShowNotify("Registro agregado con exito.");
+                cargarGrid();
+                return;
+            }
+            await ShowNotify("El registro no se agregó");
+        }
+        cargarGrid();
+        CancelEdit(Entidad);
+
+        await Tabla.Reload();
+        await Task.Delay(1);
+
+    }
+    async void CancelEdit(Articulo Entidad)
+    {
+        if (Tabla != null)
+            Tabla.CancelEditRow(Entidad);
+        DisableInsert = false;
+    }
+
+    private async Task ShowNotify(string Notificacion)
+    {
+        var result = await DialogService.OpenAsync("Notificación", ds =>
+    @<RadzenStack Gap="1rem">
+        <RadzenLabel>@Notificacion</RadzenLabel>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            <RadzenButton Text="OK" Click="@(()=>ds.Close())" ButtonStyle="ButtonStyle.Light" />
+        </RadzenStack>
+    </RadzenStack>
+    ,
+        new DialogOptions
+        {
+            Width = "350px",
+            Height = "250px",
+            CloseDialogOnOverlayClick = false
+        });
+    }
+
+
+
+
+}
